@@ -1,0 +1,650 @@
+---
+title: "Olympic"
+author: "Emily Marie Purvis"
+date: "2024-07-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## DATA MANIPULATED IN R
+
+Load libraries
+
+```{r, echo=FALSE}
+
+library(readxl)
+library(tidyverse)
+library(sf)
+library(stringr)
+library(pracma)
+```
+
+Load data
+
+```{r}
+
+treespreadsheet <- read_excel("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\StemCoordinates_DataOHDS.xlsx")
+
+# bait
+
+bait_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\bait\\gis\\405Bait.shp")
+
+bait_spreadsheet <- subset(treespreadsheet, Plot == "405")
+
+# clavicle 
+
+clavicle_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\clavicle\\gis\\302Clavicle.shp")
+
+clavicle_spreadsheet <- subset(treespreadsheet, Plot == "302")
+
+# fresca
+
+fresca_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fresca\\gis\\202Fresca.shp")
+
+fresca_spreadsheet <- subset(treespreadsheet, Plot == "202")
+
+# fulton
+
+fulton_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fulton\\gis\\601Fulton.shp")
+
+fulton_spreadsheet <- subset(treespreadsheet, Plot == "601")
+
+# rail
+
+rail_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\rail\\gis\\103Rail.shp")
+
+rail_spreadsheet <- subset(treespreadsheet, Plot == "103")
+
+# snow
+
+snow_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\snow\\gis\\805Snow.shp")
+
+snow_spreadsheet <- subset(treespreadsheet, Plot == "805")
+
+# triton
+
+triton_shp <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\triton\\gis\\703Triton.shp")
+
+triton_spreadsheet <- subset(treespreadsheet, Plot == "703")
+
+# reference point coordinates
+
+bait_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\bait\\bait_reference_points.gpkg")
+
+clavicle_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\clavicle\\clavicle_reference_points.gpkg")
+
+fresca_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fresca\\fresca_reference_points.gpkg")
+
+fulton_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fulton\\fulton_reference_points.gpkg")
+  
+rail_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\rail\\rail_reference_points.gpkg")
+
+snow_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\snow\\snow_reference_points.gpkg")
+
+triton_ref_points <- read_sf("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\triton\\triton_reference_points.gpkg")
+
+```
+
+produce CRS-free .gpkg files of the points with the attributes from the other table joined onto them
+
+```{r}
+
+#### bait ####
+
+# drop 5 trees without coordinates
+
+bait_spreadsheet <- subset(bait_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1563 to 1146 trees.
+
+bait_spreadsheet <- subset(bait_spreadsheet, bait_spreadsheet$Tree_no<9000) 
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+bait_spreadsheet <- bait_spreadsheet %>%
+  add_column(ID = "") 
+
+bait_spreadsheet$ID <- paste0(bait_spreadsheet$Plot, "-", bait_spreadsheet$Tree_no, "-", bait_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+bait_full_join <- full_join(bait_shp, bait_spreadsheet, by = "ID") # went from 855 lines in the shapefile and 1146 lines in the spreadsheet to 1153 lines overall
+
+# remove extraneous columns
+
+bait_full_join <- bait_full_join[,-c(5:9)]
+
+bait_full_join <- bait_full_join[,-c(7)]
+
+bait_full_join <- bait_full_join[,-c(18:19)]
+
+bait_full_join <- bait_full_join[,-c(56:60)]
+
+bait_full_join <- bait_full_join[,-c(51)]
+
+bait_full_join <- bait_full_join[,-c(42:45)]
+
+bait_full_join <- bait_full_join %>% rename(Recruit.y = RECRUIT)
+
+bait_full_join <- bait_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(bait_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\bait\\bait_merged.gpkg")
+
+# clavicle
+
+# drop 7 trees without coordinates
+
+clavicle_spreadsheet <- subset(clavicle_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1395 to 934 trees.
+
+clavicle_spreadsheet <- subset(clavicle_spreadsheet, clavicle_spreadsheet$Tree_no<9000) 
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+clavicle_spreadsheet <- clavicle_spreadsheet %>%
+  add_column(ID = "") 
+
+clavicle_spreadsheet$ID <- paste0(clavicle_spreadsheet$Plot, "-", clavicle_spreadsheet$Tree_no, "-", clavicle_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+clavicle_full_join <- full_join(clavicle_shp, clavicle_spreadsheet, by = "ID") # went from 705 lines in the shapefile and 934 lines in the spreadsheet to 939 lines overall
+
+# remove extraneous columns
+
+clavicle_full_join <- clavicle_full_join[,-c(5:9)]
+
+clavicle_full_join <- clavicle_full_join[,-c(7)]
+
+clavicle_full_join <- clavicle_full_join[,-c(18:19)]
+
+clavicle_full_join <- clavicle_full_join[,-c(56:60)]
+
+clavicle_full_join <- clavicle_full_join[,-c(51)]
+
+clavicle_full_join <- clavicle_full_join[,-c(42:45)]
+
+clavicle_full_join <- clavicle_full_join %>% rename(Recruit.y = RECRUIT)
+
+clavicle_full_join <- clavicle_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(clavicle_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\clavicle\\clavicle_merged.gpkg")
+
+# fresca
+
+# no without coordinates!
+
+# fresca_spreadsheet <- subset(fresca_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1021 to 744 trees.
+
+fresca_spreadsheet <- subset(fresca_spreadsheet, fresca_spreadsheet$Tree_no<9000) 
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+fresca_spreadsheet <- fresca_spreadsheet %>%
+  add_column(ID = "") 
+
+fresca_spreadsheet$ID <- paste0(fresca_spreadsheet$Plot, "-", fresca_spreadsheet$Tree_no, "-", fresca_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+fresca_full_join <- full_join(fresca_shp, fresca_spreadsheet, by = "ID") # went from 701 lines in the shapefile and 774 lines in the spreadsheet to 775 lines overall
+
+# remove extraneous columns
+
+fresca_full_join <- fresca_full_join[,-c(5:9)]
+
+fresca_full_join <- fresca_full_join[,-c(7)]
+
+fresca_full_join <- fresca_full_join[,-c(18:19)]
+
+fresca_full_join <- fresca_full_join[,-c(56:60)]
+
+fresca_full_join <- fresca_full_join[,-c(51)]
+
+fresca_full_join <- fresca_full_join[,-c(42:45)]
+
+fresca_full_join <- fresca_full_join %>% rename(Recruit.y = RECRUIT)
+
+fresca_full_join <- fresca_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(fresca_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fresca\\fresca_merged.gpkg")
+
+# fulton
+
+# drop 12 trees without coordinates
+
+fulton_spreadsheet <- subset(fulton_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1435 to 1195 trees.
+
+fulton_spreadsheet <- subset(fulton_spreadsheet, fulton_spreadsheet$Tree_no<9000)
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+fulton_spreadsheet <- fulton_spreadsheet %>%
+  add_column(ID = "") 
+
+fulton_spreadsheet$ID <- paste0(fulton_spreadsheet$Plot, "-", fulton_spreadsheet$Tree_no, "-", fulton_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+fulton_full_join <- full_join(fulton_shp, fulton_spreadsheet, by = "ID") # went from 795 lines in the shapefile and 1195 lines in the spreadsheet to 1200 lines overall
+
+# remove extraneous columns
+
+fulton_full_join <- fulton_full_join[,-c(5:9)]
+
+fulton_full_join <- fulton_full_join[,-c(7)]
+
+fulton_full_join <- fulton_full_join[,-c(18:19)]
+
+fulton_full_join <- fulton_full_join[,-c(56:60)]
+
+fulton_full_join <- fulton_full_join[,-c(51)]
+
+fulton_full_join <- fulton_full_join[,-c(42:45)]
+
+fulton_full_join <- fulton_full_join %>% rename(Recruit.y = RECRUIT)
+
+fulton_full_join <- fulton_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(fulton_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\fulton\\fulton_merged.gpkg")
+
+# rail
+
+# drop 2 trees without coordinates
+
+rail_spreadsheet <- subset(rail_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1673 to 1536 trees.
+
+rail_spreadsheet <- subset(rail_spreadsheet, rail_spreadsheet$Tree_no<9000) 
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+rail_spreadsheet <- rail_spreadsheet %>%
+  add_column(ID = "") 
+
+rail_spreadsheet$ID <- paste0(rail_spreadsheet$Plot, "-", rail_spreadsheet$Tree_no, "-", rail_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+rail_full_join <- full_join(rail_shp, rail_spreadsheet, by = "ID") # went from 1082 lines in the shapefile and 1536 lines in the spreadsheet to 1542 lines overall
+
+# remove extraneous columns
+
+rail_full_join <- rail_full_join[,-c(5:9)]
+
+rail_full_join <- rail_full_join[,-c(7)]
+
+rail_full_join <- rail_full_join[,-c(18:19)]
+
+rail_full_join <- rail_full_join[,-c(56:60)]
+
+rail_full_join <- rail_full_join[,-c(51)]
+
+rail_full_join <- rail_full_join[,-c(42:45)]
+
+rail_full_join <- rail_full_join %>% rename(Recruit.y = RECRUIT)
+
+rail_full_join <- rail_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(rail_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\rail\\rail_merged.gpkg")
+
+# snow
+
+# drop 79 trees without coordinates
+
+snow_spreadsheet <- subset(snow_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 2399 to 2268 trees.
+
+snow_spreadsheet <- subset(snow_spreadsheet, snow_spreadsheet$Tree_no<9000) 
+
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+snow_spreadsheet <- snow_spreadsheet %>%
+  add_column(ID = "") 
+
+snow_spreadsheet$ID <- paste0(snow_spreadsheet$Plot, "-", snow_spreadsheet$Tree_no, "-", snow_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+snow_full_join <- full_join(snow_shp, snow_spreadsheet, by = "ID") # went from 1821 lines in the shapefile and 2268 lines in the spreadsheet to 2278 lines overall
+
+# remove extraneous columns
+
+snow_full_join <- snow_full_join[,-c(5:9)]
+
+snow_full_join <- snow_full_join[,-c(7)]
+
+snow_full_join <- snow_full_join[,-c(18:19)]
+
+snow_full_join <- snow_full_join[,-c(56:60)]
+
+snow_full_join <- snow_full_join[,-c(51)]
+
+snow_full_join <- snow_full_join[,-c(42:45)]
+
+snow_full_join <- snow_full_join %>% rename(Recruit.y = RECRUIT)
+
+snow_full_join <- snow_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(snow_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\snow\\snow_merged.gpkg")
+
+# triton
+
+# drop 31 trees without coordinates
+
+triton_spreadsheet <- subset(triton_spreadsheet, !is.na(X_Corrected)) 
+
+# drop trees with IDs in the 9000s (these were logged and no longer exist). went from 1877 to 1456 trees.
+
+triton_spreadsheet <- subset(triton_spreadsheet, triton_spreadsheet$Tree_no<9000) 
+# add tree ID column to spreadsheet to match up with tree IDs in shapefile
+
+triton_spreadsheet <- triton_spreadsheet %>%
+  add_column(ID = "") 
+
+triton_spreadsheet$ID <- paste0(triton_spreadsheet$Plot, "-", triton_spreadsheet$Tree_no, "-", triton_spreadsheet$RECRUIT) 
+
+# use full_join to retain both data.frames in situations where tree IDs between the two don't match up
+
+triton_full_join <- full_join(triton_shp, triton_spreadsheet, by = "ID") # went from 1081 lines in the shapefile and 1456 lines in the spreadsheet to 1559 lines overall
+
+# remove extraneous columns
+
+triton_full_join <- triton_full_join[,-c(5:9)]
+
+triton_full_join <- triton_full_join[,-c(7)]
+
+triton_full_join <- triton_full_join[,-c(18:19)]
+
+triton_full_join <- triton_full_join[,-c(56:60)]
+
+triton_full_join <- triton_full_join[,-c(51)]
+
+triton_full_join <- triton_full_join[,-c(42:45)]
+
+triton_full_join <- triton_full_join %>% rename(Recruit.y = RECRUIT)
+
+triton_full_join <- triton_full_join %>% rename(Recruit.x = Recruit)
+
+st_write(triton_full_join, "C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\triton\\triton_merged.gpkg")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Experimenting with Rail coords
+
+```{r}
+
+# comparison between the GIS and spreadsheet datasets
+
+rail_gis <- st_read("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\rail\\gis\\103Rail.shp") # 1082 trees
+
+rail_spreadsheet <- subset(spreadsheet, Plot == "103") # 1675 trees
+
+# removing spreadsheet trees with no coordinates and making it into a spatial data.frame
+
+rail_spreadsheet <- subset(rail_spreadsheet, !is.na(Dist)) # 1673 trees
+
+rail_spreadsheet_sf <- st_as_sf(rail_spreadsheet, coords = c("X_Corrected", "Y_Corrected"))
+
+# how many unique geometries are there in each dataset tho?
+
+rail_gis_unique <- dplyr::distinct(rail_gis, geometry, .keep_all = TRUE) # 1077 trees
+
+rail_spreadsheet_unique <- dplyr::distinct(rail_spreadsheet_sf, geometry, .keep_all = TRUE) # 1667 trees
+
+# how  many unique tree numbers are there in each dataset? (multi-stemmed trees have the same tree number but different recruit numbers)
+
+rail_gis_unique <- dplyr::distinct(rail_gis, Tree_no, .keep_all = TRUE) # 904 trees
+
+rail_spreadsheet_unique <- dplyr::distinct(rail_spreadsheet_sf, Tree_no, .keep_all = TRUE) # 1174 trees
+
+# what happens if I try to join the two datasets by different variables
+
+rail_spreadsheet_sf <- rail_spreadsheet_sf %>%
+  add_column(ID = "")
+
+rail_spreadsheet_sf$ID <- paste0(rail_spreadsheet_sf$Plot, "-", rail_spreadsheet_sf$Tree_no, "-", rail_spreadsheet_sf$RECRUIT)
+
+rail_spreadsheet <- rail_spreadsheet %>%
+  add_column(ID = "")
+
+rail_spreadsheet$ID <- paste0(rail_spreadsheet$Plot, "-", rail_spreadsheet$Tree_no, "-", rail_spreadsheet$RECRUIT)
+
+rail_gis <- rail_gis %>% rename(X_Corrected = x_correcte, Y_Corrected = y_correcte)
+
+rail_gis_nogis <- st_drop_geometry(rail_gis)
+
+# in the spreadsheet, trees with ID numbers in the 9000s were cut in the thinning process!!!! can remove those
+
+rail_spreadsheet_remove_thinned <- rail_spreadsheet[-c(1539:1675),] #1536 trees
+
+# join by ID numbers (IDs = plot # + tree # + recruit #)
+
+rail_combo_fullj_byid <- full_join(rail_gis_nogis, rail_spreadsheet_remove_thinned, by = join_by(ID)) # 1542 individuals
+
+# rail_combo_fullj_byxcoords <- full_join(rail_gis_nogis, rail_spreadsheet, by = join_by(X_Corrected)) # sketchy, many to many relationships all over the place, 2600 trees. 
+
+# pare down the combined by ID data.frame to make it easier to work with
+
+rail_combo_fullj_byid <- rail_combo_fullj_byid[,-c(5:9)]
+
+rail_combo_fullj_byid <- rail_combo_fullj_byid[,-7]
+
+rail_combo_fullj_byid <- rail_combo_fullj_byid[,-c(18:19)]
+
+rail_combo_fullj_byid <- rail_combo_fullj_byid[,-c(20:32)]
+
+rail_combo_fullj_byid <- rail_combo_fullj_byid[,-c(46:47)]
+
+# now theoretically we can calculate distance and azimuth from reference points to find lat/lon of all trees! except....1. a bunch of trees (hundreds of them) have corrupted reference points and the reference point column just contains the tree ID numbers and 2. some trees have seemingly plausible reference point values with major typos (e.g. AA12 instead of A12) but if I correct them it's kind of a big guess
+
+# new file alert! one with actual coordinates! it doesn't have any height or dbh info tho. and it has way less trees (929) compared to the other joined file. let's merge it into the other joined file.
+
+rail_coordinates <- read_excel("C:\\Users\\emily\\Box\\FOCAL\\ofo-field-data\\1_received-data\\0014\\data\\rail\\Rail_tree_coordinates.xlsx") # 929 trees
+
+rail_coordinates <- rail_coordinates %>%
+  add_column(ID = "")
+
+rail_coordinates$ID <- paste0("103-", rail_coordinates$'tree no', "-", rail_coordinates$recruit)
+
+rail_double_combo <- full_join(rail_combo_fullj_byid, rail_coordinates, by = join_by(ID))
+
+# super useful observation: ALL the trees with corrupted reference points (those that have the tree ID number in the reference point column) don't have lat/lons on this new spreadsheet. there other other clusters of trees without lat/lons in this new spreadsheet that do have a real reference point value so this isn't the only explanatory factor. the remaining trees without lat/lons originate from both the "gis" and "spreadsheet" files. 
+
+# can try to calculate coordinates and see how they match up with the ones that were given. if the method seems to be okay, can repeat it with other plots. 1. remove trees with distance or azimuth of NA. 2. remove trees with reference points that are tree ID numbers, 3. fix what may or may not be typos in other reference numbers, 4. merge in reference point coordinate file, 5. calculate new coords
+
+# 1
+
+rail_double_combo_edited4calcs <- subset(rail_double_combo, !is.na(Dist))
+
+# 3
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA10'] <- 'A10'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA11'] <- 'A11'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA12'] <- 'A12'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA7'] <- 'A7'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA8'] <- 'A8'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AA9'] <- 'A9'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AAA10'] <- 'A10'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AAA12'] <- 'A12'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AAA7'] <- 'A7'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AAA8'] <- 'A8'
+
+rail_double_combo_edited4calcs$RefPoint[rail_double_combo_edited4calcs$RefPoint == 'AAA9'] <- 'A9'
+
+# notes on step 3-- shit, there's a tree measured from reference point AA13 but no actual reference point A13. I guess I'll have to remove that tree. There are also several trees measured from reference point D13, which doesn't exist in the geoPDFs we were given with the reference points. There is only one tree measured from an E reference point, which is weird because there were 6 E reference points in the geoPDF. 
+
+# 2
+  
+rail_double_combo_edited4calcs <- rail_double_combo_edited4calcs %>% filter (RefPoint == 'A10' | RefPoint == 'A11' | RefPoint == 'A12' | RefPoint == 'A7' | RefPoint == 'A8' | RefPoint == 'A9' | RefPoint == 'B10' | RefPoint == 'B11' | RefPoint == 'B12' | RefPoint == 'B7' | RefPoint == 'B8' | RefPoint == 'B9' | RefPoint == 'C10' | RefPoint == 'C11' | RefPoint == 'C12' | RefPoint == 'C7' | RefPoint == 'C8' | RefPoint == 'C9' | RefPoint == 'D10' | RefPoint == 'D11' | RefPoint == 'D12' | RefPoint == 'D7' | RefPoint == 'D8' | RefPoint == 'D9' | RefPoint == 'E10' | RefPoint == 'E11' | RefPoint == 'E12' | RefPoint == 'E7' | RefPoint == 'E8' | RefPoint == 'E9') # took dataset from 1536 trees to 1217 trees
+
+# 4
+
+rail_ref_points <- rail_ref_points[,-1]
+
+rail_ref_points <- rail_ref_points %>%
+  dplyr::mutate(ref_point_lon_WGS = sf::st_coordinates(.)[,1],
+                ref_point_lat_WGS = sf::st_coordinates(.)[,2])
+
+rail_ref_points <- st_transform (rail_ref_points, crs = 32610)
+
+rail_ref_points <- rail_ref_points %>%
+  dplyr::mutate(ref_point_lon_UTM = sf::st_coordinates(.)[,1],
+                ref_point_lat_UTM = sf::st_coordinates(.)[,2])
+
+rail_ref_points <- rail_ref_points %>% rename(RefPoint = reference)
+
+rail_ref_points <- st_drop_geometry(rail_ref_points)
+
+rail_double_combo_edited4calcs_plusrefpoints <- left_join(rail_double_combo_edited4calcs, rail_ref_points, by = join_by(RefPoint))
+
+# 5
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  add_column(TreeLonUTM_calculated = "")
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  add_column(TreeLatUTM_calculated = "")
+
+# this calculation is only correct if Dist is in meters...but it could be in feet. who knows. 
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  mutate(TreeLonUTM_calculated = as.numeric(ref_point_lon_UTM) + sin(deg2rad(Azimuth)) * Dist,
+         TreeLatUTM_calculated = as.numeric(ref_point_lat_UTM) + cos(deg2rad(Azimuth)) * Dist)
+
+rail_double_combo_edited4calcs_plusrefpoints_sp <- st_as_sf(rail_double_combo_edited4calcs_plusrefpoints, coords = c("TreeLonUTM_calculated","TreeLatUTM_calculated"), crs = 32610)
+
+rail_double_combo_edited4calcs_plusrefpoints_sp <- rail_double_combo_edited4calcs_plusrefpoints_sp %>% st_transform(4326)
+
+rail_double_combo_edited4calcs_plusrefpoints_sp <- rail_double_combo_edited4calcs_plusrefpoints_sp %>%
+  dplyr::mutate(TreeLonWGS_calculated = sf::st_coordinates(.)[,1],
+                TreeLatWGS_calculated = sf::st_coordinates(.)[,2])
+
+# export gpkg files of the tree coords given to us by USFS and the ones I just calculated to visually compare 
+
+rail_treecoords_empcalcs <- rail_double_combo_edited4calcs_plusrefpoints_sp[,-c(1:54)]
+
+st_write(rail_treecoords_empcalcs, "C:\\Users\\emily\\Desktop\\OHDS_trees_empcalcs.gpkg")
+
+rail_coordinates <- st_as_sf(rail_coordinates, coords = c("lon","lat"), crs = 4326)
+
+st_write(rail_coordinates, "C:\\Users\\emily\\Desktop\\OHDS_trees_USFScalcs.gpkg")
+
+# what if that dist was in feet? let's calculate and export
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  add_column(TreeLonUTM_calculated_feet = "")
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  add_column(TreeLatUTM_calculated_feet = "")
+
+rail_double_combo_edited4calcs_plusrefpoints <- rail_double_combo_edited4calcs_plusrefpoints %>%
+  mutate(TreeLonUTM_calculated_feet = as.numeric(ref_point_lon_UTM) + sin(deg2rad(Azimuth)) * (Dist*0.3048),
+         TreeLatUTM_calculated_feet = as.numeric(ref_point_lat_UTM) + cos(deg2rad(Azimuth)) * (Dist*0.3048))
+
+rail_double_combo_edited4calcs_plusrefpoints_sp_feet <- st_as_sf(rail_double_combo_edited4calcs_plusrefpoints, coords = c("TreeLonUTM_calculated_feet","TreeLatUTM_calculated_feet"), crs = 32610)
+
+rail_double_combo_edited4calcs_plusrefpoints_sp_feet <- rail_double_combo_edited4calcs_plusrefpoints_sp_feet %>% st_transform(4326)
+
+rail_double_combo_edited4calcs_plusrefpoints_sp_feet <- rail_double_combo_edited4calcs_plusrefpoints_sp_feet %>%
+  dplyr::mutate(TreeLonWGS_calculated_feet = sf::st_coordinates(.)[,1],
+                TreeLatWGS_calculated_feet = sf::st_coordinates(.)[,2])
+
+rail_treecoords_empcalcs_feet <- rail_double_combo_edited4calcs_plusrefpoints_sp_feet[,-c(1:56)]
+
+st_write(rail_treecoords_empcalcs_feet, "C:\\Users\\emily\\Desktop\\OHDS_trees_empcalcs_feet.gpkg")
+
+# my coords are kind of aligned with the USFS ones on the east side of the map, but definitely not the west side????
+
+# make a gpkg of just the trees in the rail spreadsheet
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA10'] <- 'A10'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA11'] <- 'A11'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA12'] <- 'A12'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA7'] <- 'A7'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA8'] <- 'A8'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AA9'] <- 'A9'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AAA10'] <- 'A10'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AAA12'] <- 'A12'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AAA7'] <- 'A7'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AAA8'] <- 'A8'
+
+rail_spreadsheet_remove_thinned$RefPoint[rail_spreadsheet_remove_thinned$RefPoint == 'AAA9'] <- 'A9'
+
+rail_spreadsheet_remove_thinned <- rail_spreadsheet_remove_thinned %>% filter (RefPoint == 'A10' | RefPoint == 'A11' | RefPoint == 'A12' | RefPoint == 'A7' | RefPoint == 'A8' | RefPoint == 'A9' | RefPoint == 'B10' | RefPoint == 'B11' | RefPoint == 'B12' | RefPoint == 'B7' | RefPoint == 'B8' | RefPoint == 'B9' | RefPoint == 'C10' | RefPoint == 'C11' | RefPoint == 'C12' | RefPoint == 'C7' | RefPoint == 'C8' | RefPoint == 'C9' | RefPoint == 'D10' | RefPoint == 'D11' | RefPoint == 'D12' | RefPoint == 'D7' | RefPoint == 'D8' | RefPoint == 'D9' | RefPoint == 'E10' | RefPoint == 'E11' | RefPoint == 'E12' | RefPoint == 'E7' | RefPoint == 'E8' | RefPoint == 'E9') # removed about 300 trees?!?!!?
+
+rail_spreadsheet_remove_thinned_plusrefpoints <- left_join(rail_spreadsheet_remove_thinned, rail_ref_points, by = join_by(RefPoint))
+
+rail_spreadsheet_remove_thinned_plusrefpoints <- rail_spreadsheet_remove_thinned_plusrefpoints %>%
+  add_column(TreeLonUTM_calculated = "")
+
+rail_spreadsheet_remove_thinned_plusrefpoints <- rail_spreadsheet_remove_thinned_plusrefpoints %>%
+  add_column(TreeLatUTM_calculated = "")
+
+rail_spreadsheet_remove_thinned_plusrefpoints <- rail_spreadsheet_remove_thinned_plusrefpoints %>%
+  mutate(TreeLonUTM_calculated = as.numeric(ref_point_lon_UTM) + sin(deg2rad(Azimuth)) * Dist,
+         TreeLatUTM_calculated = as.numeric(ref_point_lat_UTM) + cos(deg2rad(Azimuth)) * Dist)
+
+rail_spreadsheet_remove_thinned_plusrefpoints_sp <- st_as_sf(rail_spreadsheet_remove_thinned_plusrefpoints, coords = c("TreeLonUTM_calculated","TreeLatUTM_calculated"), crs = 32610)
+
+rail_spreadsheet_remove_thinned_plusrefpoints_sp <- rail_spreadsheet_remove_thinned_plusrefpoints_sp %>% st_transform(4326)
+
+rail_spreadsheet_remove_thinned_plusrefpoints_sp <- rail_spreadsheet_remove_thinned_plusrefpoints_sp %>%
+  dplyr::mutate(TreeLonWGS_calculated = sf::st_coordinates(.)[,1],
+                TreeLatWGS_calculated = sf::st_coordinates(.)[,2])
+
+rail_spreadsheet_final_calcs <- rail_spreadsheet_remove_thinned_plusrefpoints_sp[,-c(1:31)]
+
+st_write(rail_spreadsheet_final_calcs, "C:\\Users\\emily\\Desktop\\OHDS_trees_rail_spreadsheet_only_no_ref_adjustments_empcalcs.gpkg")
+
+# a bunch of these coords are still shifted relative to the USFS coords. I think it's because of the reference points I adjusted (AA=A). What happens if I DON'T change any ref points and just eliminate those guys?
+
+rail_spreadsheet_remove_thinned <- rail_spreadsheet_remove_thinned %>% filter (RefPoint == 'A10' | RefPoint == 'A11' | RefPoint == 'A12' | RefPoint == 'A7' | RefPoint == 'A8' | RefPoint == 'A9' | RefPoint == 'B10' | RefPoint == 'B11' | RefPoint == 'B12' | RefPoint == 'B7' | RefPoint == 'B8' | RefPoint == 'B9' | RefPoint == 'C10' | RefPoint == 'C11' | RefPoint == 'C12' | RefPoint == 'C7' | RefPoint == 'C8' | RefPoint == 'C9' | RefPoint == 'D10' | RefPoint == 'D11' | RefPoint == 'D12' | RefPoint == 'D7' | RefPoint == 'D8' | RefPoint == 'D9' | RefPoint == 'E10' | RefPoint == 'E11' | RefPoint == 'E12' | RefPoint == 'E7' | RefPoint == 'E8' | RefPoint == 'E9') # removed like half the trees.......
+
+# this removed that chunk of misaligned points to the east
+
+```
+
+
+## DATA MANIPULATED IN EXCEL
