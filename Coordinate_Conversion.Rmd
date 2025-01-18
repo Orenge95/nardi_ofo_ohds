@@ -7,7 +7,7 @@ output: html_document
 
 ```{r}
 # Load necessary library
-library(sf)
+library(sf) 
 
 # Read the CSV file into R
 spreadsheet <- read.csv("C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/TrackingSheet/805_Snow.csv")
