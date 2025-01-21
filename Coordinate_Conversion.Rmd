@@ -7,7 +7,7 @@ output: html_document
 
 ```{r}
 # Load necessary library
-library(sf) 
+library(sf)
 
 # Read the CSV file into R
 spreadsheet <- read.csv("C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/TrackingSheet/805_Snow.csv")
@@ -19,9 +19,6 @@ sf_object <- st_as_sf(spreadsheet, coords = c("X_Corrected", "Y_Corrected"))
 # Assign a CRS if needed (WGS84)
  sf_object <- st_set_crs(sf_object, 4326)
 
-# Write the sf object to a shapefile
-st_write(sf_object, "output_file.geojson", delete_dsn = TRUE)
-
-# Save as Shapefile
-st_write(sf_object, "C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/Projected_CSV/Snow805.shp", delete_dsn = TRUE)
+# Write the sf object to a GeoPackage
+st_write(sf_object, "C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/Projected_CSV/Snow805.gpkg", delete_dsn = TRUE)
 ```
