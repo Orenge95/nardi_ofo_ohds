@@ -10,15 +10,15 @@ output: html_document
 library(sf)
 
 # Read the CSV file into R
-spreadsheet <- read.csv("C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/TrackingSheet/805_Snow.csv")
+spreadsheet <- read.csv("C:\\Users\\Oren\\Nardi_workspace\\Tech\\OFO\\StemMaps\\Data\\703_Triton\\FinalData\\Modified_Triton703\\Triton_703_Append_Cleaned.csv")
 
 # Convert the data frame to an sf object
 # Specify the columns containing the X and Y coordinates
 sf_object <- st_as_sf(spreadsheet, coords = c("X_Corrected", "Y_Corrected"))
 
-# Assign a CRS if needed (WGS84)
- sf_object <- st_set_crs(sf_object, 4326)
+# Assign a CRS if needed (NAD 83 UTM Zone 10N)
+ sf_object <- st_set_crs(sf_object, 26910)
 
 # Write the sf object to a GeoPackage
-st_write(sf_object, "C:/Users/Oren/Nardi_workspace/Tech/OFO/StemMaps/Data/805_Snow/Data/Projected_CSV/Snow805.gpkg", delete_dsn = TRUE)
+st_write(sf_object, "C:\\Users\\Oren\\Nardi_workspace\\Tech\\OFO\\StemMaps\\Data\\703_Triton\\FinalData\\R_Output\\Triton_703.gpkg", delete_dsn = TRUE)
 ```
