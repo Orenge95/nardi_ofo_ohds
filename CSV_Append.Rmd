@@ -1,0 +1,32 @@
+---
+title: "Append"
+author: "Orenge"
+date: "2025-01-28"
+output: html_document
+---
+```{r}
+library(dplyr)
+
+# Path to the csv1
+csv_path1 <- "C:\\Users\\Oren\\Nardi_workspace\\Tech\\OFO\\StemMaps\\Data\\703_Triton\\FinalData\\Ally_Files\\Ally_table\\Ally_Table.csv"
+# Read the csv1
+spreadsheet1 <- read.csv(csv_path1)
+
+# Path to the csv2
+csv_path2 <- "C:\\Users\\Oren\\Nardi_workspace\\Tech\\OFO\\StemMaps\\Data\\703_Triton\\FinalData\\Box_Files\\Triton_703.csv"
+output_csv_path <- "C:\\Users\\Oren\\Nardi_workspace\\Tech\\OFO\\StemMaps\\Data\\703_Triton\\FinalData\\Modified_Triton703\\Triton_703_Append.csv"
+
+# Read the csv2 file
+spreadsheet2 <- read.csv(csv_path2)
+
+# Merge the data based on 'Tree_no' and 'reference_point'
+merged_data <- spreadsheet2 %>%
+  left_join(spreadsheet1 %>% select(Tree_no, RefPoint, Table1_Dbh, Table1_Log, RECRUIT), 
+            by = c("Tree_no", "RefPoint", "RECRUIT"))
+
+# Write the updated data frame back to a new CSV file
+write.csv(merged_data, output_csv_path, row.names = FALSE)
+
+# Confirmation message
+cat("The 'Table1_Dbh' field has been appended based on 'Tree_no' , 'RefPoint', 'RECRUIT', 'Table1_Log' and saved to", output_csv_path, "\n")
+```
